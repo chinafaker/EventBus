@@ -10,7 +10,7 @@ buildscript {
 
 apply plugin: 'java'
 // plugin to make it easier/safer to use EventBus annotation processor
-apply plugin: 'net.ltgt.apt-idea'
+//apply plugin: 'net.ltgt.apt-idea'
 
 sourceCompatibility = 1.7
 
@@ -25,12 +25,12 @@ sourceSets {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: '*.jar')
-    compile(project(':eventbus')) {
+    implementation fileTree(dir: 'libs', include: '*.jar')
+    implementation(project(':eventbus')) {
         exclude group: "com.google.android" // Does not seem to work...
     }
-    apt project(':eventbus-annotation-processor')
-    compile 'junit:junit:4.12'
+//    apt project(':eventbus-annotation-processor')
+    implementation 'junit:junit:4.12'
 }
 
 tasks.withType(JavaCompile) {
