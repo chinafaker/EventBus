@@ -48,8 +48,11 @@ public class EventBus {
     private static final EventBusBuilder DEFAULT_BUILDER = new EventBusBuilder();
     private static final Map<Class<?>, List<Class<?>>> eventTypesCache = new HashMap<>();
 
+    //订阅者订阅的event对象的Class , Subscription封装了订阅者的object,订阅者内部的method
     private final Map<Class<?>, CopyOnWriteArrayList<Subscription>> subscriptionsByEventType;
+    //订阅者object，订阅者订阅的event对象的Class
     private final Map<Object, List<Class<?>>> typesBySubscriber;
+    //订阅者订阅的event对象的Class, stickyEvent
     private final Map<Class<?>, Object> stickyEvents;
 
     private final ThreadLocal<PostingThreadState> currentPostingThreadState = new ThreadLocal<PostingThreadState>() {
@@ -73,6 +76,7 @@ public class EventBus {
     private final boolean logNoSubscriberMessages;
     private final boolean sendSubscriberExceptionEvent;
     private final boolean sendNoSubscriberEvent;
+    //eventInheritance默认为true
     private final boolean eventInheritance;
 
     private final int indexCount;
@@ -148,11 +152,13 @@ public class EventBus {
         List<SubscriberMethod> subscriberMethods = subscriberMethodFinder.findSubscriberMethods(subscriberClass);
         synchronized (this) {
             for (SubscriberMethod subscriberMethod : subscriberMethods) {
+                //订阅者订阅对象
                 subscribe(subscriber, subscriberMethod);
             }
         }
     }
 
+    //订阅者订阅对象
     // Must be called in synchronized block
     private void subscribe(Object subscriber, SubscriberMethod subscriberMethod) {
         Class<?> eventType = subscriberMethod.eventType;
@@ -183,8 +189,10 @@ public class EventBus {
         }
         subscribedEvents.add(eventType);
 
+        //是否粘性事件
         if (subscriberMethod.sticky) {
             if (eventInheritance) {
+                //必须考虑eventType所有子类的现有粘性事件
                 // Existing sticky events of all subclasses of eventType have to be considered.
                 // Note: Iterating over all events may be inefficient with lots of sticky events,
                 // thus data structure should be changed to allow a more efficient lookup
@@ -192,6 +200,7 @@ public class EventBus {
                 Set<Map.Entry<Class<?>, Object>> entries = stickyEvents.entrySet();
                 for (Map.Entry<Class<?>, Object> entry : entries) {
                     Class<?> candidateEventType = entry.getKey();
+                    //判断是否是eventType的子类
                     if (eventType.isAssignableFrom(candidateEventType)) {
                         Object stickyEvent = entry.getValue();
                         checkPostStickyEventToSubscription(newSubscription, stickyEvent);
@@ -204,6 +213,12 @@ public class EventBus {
         }
     }
 
+    /**
+     * 检查粘性事件，发布到订阅
+     *
+     * @param newSubscription
+     * @param stickyEvent
+     */
     private void checkPostStickyEventToSubscription(Subscription newSubscription, Object stickyEvent) {
         if (stickyEvent != null) {
             // If the subscriber is trying to abort the event, it will fail (event is not tracked in posting state)
@@ -265,9 +280,9 @@ public class EventBus {
      */
     public void post(Object event) {
         PostingThreadState postingState = currentPostingThreadState.get();
+        //发送事件的队列
         List<Object> eventQueue = postingState.eventQueue;
         eventQueue.add(event);
-
         if (!postingState.isPosting) {
             postingState.isMainThread = isMainThread();
             postingState.isPosting = true;
@@ -474,6 +489,7 @@ public class EventBus {
     }
 
     /**
+     * 查到所有继承关系,的事件类型
      * Looks up all Class objects including super classes and interfaces. Should also work for interfaces.
      */
     private static List<Class<?>> lookupAllEventTypes(Class<?> eventClass) {
@@ -520,6 +536,12 @@ public class EventBus {
         }
     }
 
+    /**
+     * 调用分发事件  invoke
+     *
+     * @param subscription
+     * @param event
+     */
     void invokeSubscriber(Subscription subscription, Object event) {
         try {
             subscription.subscriberMethod.method.invoke(subscription.subscriber, event);
@@ -557,6 +579,7 @@ public class EventBus {
     }
 
     /**
+     * 发送事件的线程状态的封装类
      * For ThreadLocal, much faster to set (and get multiple values).
      */
     final static class PostingThreadState {
